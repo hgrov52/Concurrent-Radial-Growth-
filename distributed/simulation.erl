@@ -18,10 +18,11 @@ priorityList(Data) ->
 
 % makes a list of actor pids
 spawnNodes(L, PriorityList ) ->
+    % if list > 0 will spanwn the new agent and d add the PID to the list
     case L of
+        % uses pattern matching
         [{Pid, Address, Name, Priority, Tolerance} | T] ->
-        	NodeAddress = list_to_atom(Name++"@localhost"),
-        	io:format("NodeAddress: ~p~n",[NodeAddress]),
+            NodeAddress = list_to_atom(Name++"@localhost"),
             [spawn(NodeAddress, agent,agent,[self(), -1, -1, Pid, Name, Priority, Tolerance, 
                                 PriorityList, length(PriorityList), false, false, 0, 0])
                                 | spawnNodes(T, PriorityList)];
@@ -31,17 +32,11 @@ spawnNodes(L, PriorityList ) ->
 
 initNodes ( ListOfActors) ->
 
-    lists:foreach(fun( N ) ->
-    	%io:format("Printing this shit ~p.~n",[ListOfActors]),
-    	%io:format("N:  ~p.~n",[N]),
-    	
-    	SendTo = lists:nth(N +1, ListOfActors),
-    	LeftNode = lists:nth( mod((N-1), length(ListOfActors))+1 , ListOfActors),
-    	RightNode = lists:nth( mod((N+1), length(ListOfActors))+1 , ListOfActors),
-    	SendTo ! { init , LeftNode, RightNode },
-        
-
-        % Don't remove
+    lists:foreach(fun( N ) ->  
+        SendTo = lists:nth(N +1, ListOfActors),
+        LeftNode = lists:nth( mod((N-1), length(ListOfActors))+1 , ListOfActors),
+        RightNode = lists:nth( mod((N+1), length(ListOfActors))+1 , ListOfActors),
+        SendTo ! { init , LeftNode, RightNode },
         ok
 
     end, lists:seq(0, length(ListOfActors)-1)).
@@ -51,67 +46,59 @@ mod(X,Y) when X < 0 -> Y + X rem Y;
 mod(0, _) -> 0.
 
 
-
+% will start election or end the program based on if there agents that can still be elected
 election(ListOfActors, NodesRevolted, Time, ListOfPriorities, StartTime, Leader, Stream) ->
-    % send a message to all agents about starting election
     case ListOfPriorities of
-    	[] ->
-    		io:format(Stream,"End of simulation~n",[]);
-    	_ ->
+        % when there are no more agents that can be leader
+        [] ->
+            io:format(Stream,"End of simulation~n",[]);
 
-		    LeaderPriority = lists:max(ListOfPriorities),
-		    Leader ! {election, LeaderPriority, Time, Stream},
-		    %lists:foreach(fun(N) ->
-		    %	SendTo = lists:nth(N, ListOfActors),
-		    %	SendTo ! {election, LeaderPriority, Time, Stream}
-		    	%io:format("Sent start to ~p.~n",[SendTo])
-		    %end, lists:seq(1, length(ListOfActors))),
+        _ ->
+            % at least one agent can still be a leader, so send an election message to the previous leader
+            LeaderPriority = lists:max(ListOfPriorities),
+            Leader ! {election, LeaderPriority, Time, Stream},
+            sAgent(ListOfActors, NodesRevolted, Time, -1, ListOfPriorities, StartTime, Stream)
+    end.
 
-		    sAgent(ListOfActors, NodesRevolted, Time, -1, ListOfPriorities, StartTime, Stream)
-	end.
-
-
+% will execute when the sAgent receives a message from an agent that want to revolt 
 revolted(ListOfActors, NodesRevolted, Time, Leader ,Name, Agent, ListOfPriorities, StartTime, Stream) ->
-    %io:format("ID=~p T=~p~n", [(Name), (Time)]),
-    %io:format("member=~p~n", [lists:member(Name, NodesRevolted)]),
     case lists:member(Name, NodesRevolted) of
+        % if the agent already revolted
         true -> 
             Agent ! {ok},
             sAgent(ListOfActors, (NodesRevolted), Time, Leader, ListOfPriorities, StartTime, Stream);
-
+        
+        % if the agent that sent the message has not already revolted 
         false ->
-            %io:format("name=~p, NodesRe=~p~n", [Name, NodesRevolted]),
-            %io:format("Len(NodesRe)=~p len(actors)=~p~n", 
-            %          [ (length(NodesRevolted) +1), (length(ListOfActors))]),
-            %io:format("name=~p, NodesRe=~p~n", [Name, NodesRevolted]),
-                     
+            % updates list of nodes revolted
             sAgent(ListOfActors, (NodesRevolted ++ [Name]), Time, Leader, ListOfPriorities, StartTime, Stream)
     end,
  
     ok.
 
-
+% supervisor agent, continually called in order to recieve the messages
 sAgent(ListOfActors, NodesRevolted, Time, Leader , ListOfPriorities, StartTime, Stream) ->
     receive
         % message stop the sAgent as it dosent call itself again
         {stop} -> io:format("stop~n");
         % receives a message with the new leader
         {leader, NewLeader, Time} -> 
-        	NewLeader ! {getPid},
-        	receive
-        		{returnPid,NewLeaderPid} -> 
-        			io:format(Stream,"ID=~p became leader at t=~p~n", [NewLeaderPid, Time])
-        	end,
-        	NewLeader ! {timeIncrement, Time, NewLeader,[]},
+            NewLeader ! {getPid},
+            receive
+                {returnPid,NewLeaderPid} -> 
+                    io:format(Stream,"ID=~p became leader at t=~p~n", [NewLeaderPid, Time])
+            end,
+            NewLeader ! {timeIncrement, Time, NewLeader,[]},
             sAgent(ListOfActors, NodesRevolted, Time, NewLeader, ListOfPriorities, StartTime, Stream);
-        % 
         {elected, AgentPid, Time} -> io:format("elected: ~p.~n" ,[AgentPid]);
         %receives a message every time a agent revolts
         {revolted, T, Name, Agent} -> 
-        	io:format(Stream,"ID=~p revolted at t=~p~n", [Agent, T]),
+            io:format(Stream,"ID=~p revolted at t=~p~n", [Agent, T]),
             revolted(ListOfActors, NodesRevolted, T, Leader, 
                      Name, Agent, ListOfPriorities, StartTime, Stream);
-        % leader will send the supervisor a message asking if it has been deposed
+		% leader will send the supervisor a message asking if it has been deposed
+        % if half the nodes have revolted it will send backa message to the leader 
+        % updating the status        
         {checkDeposed, ID, NewTime} ->
             case (length(NodesRevolted) + 1) > (length(ListOfActors)+1)/2 of
                  true ->
@@ -123,19 +110,30 @@ sAgent(ListOfActors, NodesRevolted, Time, Leader , ListOfPriorities, StartTime, 
                     Leader ! {isDeposed, false},
                     sAgent(ListOfActors, NodesRevolted, NewTime, Leader, ListOfPriorities, StartTime, Stream)
             end;
-
-
         {ok} -> ok
 
     end,
-    %io:format("Supervisor out of blocking~n"),
     ok.
 
+% used to clean up the nodes for the distributed solution
 killNodes(ListOfActors) ->
-	lists:foreach(fun(N) ->
-			exit(N, "Done with process")
-		end ,ListOfActors),
-	ok.
+    lists:foreach(fun(N) ->
+            exit(N, "Done with process")
+        end ,ListOfActors),
+    ok.
+
+
+%simple quick sort to allow for easy election                                                            
+sort([Pivot|T]) ->                                                              
+    sort([ X || X <- T, lessThan(X, Pivot)]) ++ [Pivot] ++ sort([ X || X <- T, greaterThan(X, Pivot)]);                    
+
+sort([]) -> [].                                                                 
+                                                                            
+lessThan({Pid, _, _, _, _}, {Pivot, _, _, _, _}) ->                             
+    Pid < Pivot.                                                                
+
+greaterThan({Pid, _, _, _, _}, {Pivot, _, _, _, _}) ->                          
+    Pid > Pivot.
 
 
 %%%%%%%%%%%%%%
@@ -143,26 +141,16 @@ killNodes(ListOfActors) ->
 %%%%%%%%%%%%%%
 
 run(Filename) ->
-	{ok, Stream} = file:open("output.txt" , write),
+    {ok, Stream} = file:open("output.txt" , write),
     % Nodes is a list of input data 
-    %io:format("READ FILE~n"),
-	Nodes = parser:read(Filename),
-    %io:format("Made List of actors~n"),
-	ListOfActors = spawnNodes(Nodes, priorityList(Nodes)),
-    %io:format("Init the Nodes Left and Right~n"),
-    %io:format("~p~n", [ListOfActors]),
+    Nodes = sort(parser:read(Filename)),
+    ListOfActors = spawnNodes(Nodes, priorityList(Nodes)),
     initNodes(ListOfActors),
-    %io:format("Sent Election Start~n"),
     List = priorityList(Nodes),
-
     Start = lists:nth(1,ListOfActors),
+    % starts a new election
     election(ListOfActors, [], 0, List, 0,Start, Stream ),
-
-	file:close(Stream),
-	%io:format("Problem here"),
-	killNodes(ListOfActors),
-	%exit(self(),"End"),
-	ok.
-
-%start with process that instanciates each actor
-%supervisor calls spawn
+    file:close(Stream),
+    killNodes(ListOfActors),
+    %exit(self(),"End"),
+    ok.
