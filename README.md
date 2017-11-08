@@ -1,4 +1,25 @@
-# How To Run This Code
+# How To Run This Project
+Must have erlang installed, this project is run through the erl shell
+
+Navigate the terminal inside either the distributed or concurrent folder.
+
+For the concurrent solution, copy and paste the following commnads:
+  c(simulation).
+  c(agent).
+  c(parser).
+  simulation:run('config.tsv').
+
+
+erl -noinput -sname node1@localhost -setcookie election -connect_all true &
+erl -noinput -sname node2@localhost -setcookie election -connect_all true &
+erl -noinput -sname node3@localhost -setcookie election -connect_all true &
+erl -noinput -sname node4@localhost -setcookie election -connect_all true &
+erl -noinput -sname node5@localhost -setcookie election -connect_all true &
+erl -sname supervisor@localhost -setcookie election -connect_all true
+c(simulation).
+c(agent).
+c(parser).
+simulation:run('config.tsv').
 
 # Concurrent-Radial-Growth-
 <p align="center">
