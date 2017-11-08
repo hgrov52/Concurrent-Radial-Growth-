@@ -1,5 +1,4 @@
 Henry Grover   | groveh
-Carlos Calero  | calerc
 
 %%%%%%%%%%%%%%%%
 %%% Features %%%
