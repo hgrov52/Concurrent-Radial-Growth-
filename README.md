@@ -1,7 +1,8 @@
 # Concurrent-Radial-Growth-
-
+<p align="center">
 CSCI.4430/6430 Programming Languages Fall 2017
 Programming Assignment #2
+</p>
 
 This assignment is to be done either individually or in pairs. Do not show your code to any other group and do not look at any other group's code. Do not put your code in a public directory or otherwise make it public. However, you may get help from the TAs or the instructor. You are encouraged to use the LMS Discussions page to post problems so that other students can also answer/see the answers.
 
