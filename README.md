@@ -1,6 +1,8 @@
 # Concurrent-Radial-Growth-
 <p align="center">
 CSCI.4430/6430 Programming Languages Fall 2017
+</p>
+<p align="center">
 Programming Assignment #2
 </p>
 
