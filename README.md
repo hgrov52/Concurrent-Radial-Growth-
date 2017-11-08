@@ -4,9 +4,13 @@ Must have erlang installed, this project is run through the erl shell
 Navigate the terminal inside either the distributed or concurrent folder.
 
 For the concurrent solution, copy and paste the following commnads:
+
   c(simulation).
+  
   c(agent).
+  
   c(parser).
+  
   simulation:run('config.tsv').
 
 
