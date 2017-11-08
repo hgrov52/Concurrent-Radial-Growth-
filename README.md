@@ -36,7 +36,8 @@ c(parser).
 
 simulation:run('config.tsv').
 
-
+##### (if nodes are added or removed from the config.tsv file, you must modify these lines accordingly with the node names i.e. nodeX@localhost)
+##### (this program can also run on different IPs, by replacing every instance of local host with the desired address)
 
 
 # Concurrent-Radial-Growth-
