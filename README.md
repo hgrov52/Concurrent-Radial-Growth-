@@ -1,9 +1,10 @@
-## How To Run This Project
-# Must have erlang installed, this project is run through the erl shell
+# How To Run This Project
 
-# Navigate the terminal inside either the distributed or concurrent folder.
+#### Must have erlang installed, this project is run through the erl shell
 
-# For the concurrent solution, copy and paste the following commnads:
+#### Navigate the terminal inside either the distributed or concurrent folder.
+
+## For the concurrent solution, copy and paste the following commnads:
 
   c(simulation).
   
@@ -13,20 +14,32 @@
   
   simulation:run('config.tsv').
 
-# For
+## For distributed solution, copy and paste the following
 
 erl -noinput -sname node1@localhost -setcookie election -connect_all true &
+
 erl -noinput -sname node2@localhost -setcookie election -connect_all true &
+
 erl -noinput -sname node3@localhost -setcookie election -connect_all true &
+
 erl -noinput -sname node4@localhost -setcookie election -connect_all true &
+
 erl -noinput -sname node5@localhost -setcookie election -connect_all true &
+
 erl -sname supervisor@localhost -setcookie election -connect_all true
+
 c(simulation).
+
 c(agent).
+
 c(parser).
+
 simulation:run('config.tsv').
 
-## Concurrent-Radial-Growth-
+
+
+
+# Concurrent-Radial-Growth-
 <p align="center">
   CSCI.4430/6430 Programming Languages Fall 2017
 </p>
